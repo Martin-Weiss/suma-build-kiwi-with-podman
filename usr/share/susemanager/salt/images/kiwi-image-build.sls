@@ -39,10 +39,20 @@ mgr_buildimage_prepare_activation_key_in_source:
           susemanager:
             activation_key: {{ activation_key }}
 
+# MW! need to switch kiwi 10.1.10 in container to kpartx 
+mgr_buildimage_prepare_kpartx_kiwi_yml:
+  file.managed:
+    - name: /etc/kiwi.yml
+    - contents: |
+        mapper:
+          - part_mapper: kpartx
+
 {%- if use_kiwi_ng %}
 # KIWI NG
 #
-{%- set kiwi = 'kiwi-ng' %}
+# MW! change to podman -> need parameter to change image version and need delivery model for image
+# MW! need trusted CA certs
+{%- set kiwi = 'podman run --privileged -v /var/lib/ca-certificates:/var/lib/ca-certificates -v /var/lib/Kiwi:/var/lib/Kiwi:Z -v /etc/kiwi.yml:/etc/kiwi.yml registry.suse.com/bci/kiwi:10.1.10 kiwi-ng' %}
 
 {%- set kiwi_options = pillar.get('kiwi_options', '') %}
 {%- set bootstrap_packages = ['findutils', 'rhn-org-trusted-ssl-cert-osimage'] %}
@@ -59,7 +69,8 @@ mgr_buildimage_prepare_activation_key_in_source:
 
 mgr_buildimage_kiwi_prepare:
   cmd.run:
-    - name: "{{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS"
+# MW! schema problem with rpm-dir in kiwi schema 8.5 - workaround - replace rpm-dir
+    - name: "{{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS && sed -i 's/rpm-dir/rpm-md/g' {{ chroot_dir }}/image/config.xml"
     - hide_output: True
     - env:
       - GLOBAL_PARAMS: "--logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }}"
@@ -67,10 +78,11 @@ mgr_buildimage_kiwi_prepare:
     - require:
       - mgrcompat: mgr_buildimage_prepare_source
       - file: mgr_buildimage_prepare_activation_key_in_source
+      - file: mgr_buildimage_prepare_kpartx_kiwi_yml
 
 mgr_buildimage_kiwi_create:
   cmd.run:
-    - name: "{{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}"
+    - name: "echo {{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}; {{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}"
     - require:
       - cmd: mgr_buildimage_kiwi_prepare
 
