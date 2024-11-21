@@ -39,13 +39,18 @@ mgr_buildimage_prepare_activation_key_in_source:
           susemanager:
             activation_key: {{ activation_key }}
 
-
 mgr_buildimage_prepare_kpartx_kiwi_yml:
   file.managed:
     - name: /etc/kiwi.yml
     - contents: |
         mapper:
           - part_mapper: kpartx
+
+# EIB
+#
+mgr_buildimage_eib:
+  cmd.run:
+    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.0 build --definition-file=eib.yaml && tar xvf {{ source_dir }}/eib/combustion.tar.gz -C {{ source_dir }}/root/oem/ ./combustion ./artefacts/"
 
 {%- if use_kiwi_ng %}
 # KIWI NG
@@ -67,7 +72,7 @@ mgr_buildimage_prepare_kpartx_kiwi_yml:
 
 mgr_buildimage_kiwi_prepare:
   cmd.run:
-    - name: "echo {{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS ;{{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS && sed -i 's/rpm-dir/rpm-md/g' {{ chroot_dir }}/image/config.xml"
+    - name: "{{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS && sed -i 's/rpm-dir/rpm-md/g' {{ chroot_dir }}/image/config.xml"
     - hide_output: True
     - env:
       - GLOBAL_PARAMS: "--logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }}"
@@ -76,10 +81,11 @@ mgr_buildimage_kiwi_prepare:
       - mgrcompat: mgr_buildimage_prepare_source
       - file: mgr_buildimage_prepare_activation_key_in_source
       - file: mgr_buildimage_prepare_kpartx_kiwi_yml
+      - cmd: mgr_buildimage_eib
 
 mgr_buildimage_kiwi_create:
   cmd.run:
-    - name: "echo {{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}; {{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}"
+    - name: "{{ kiwi }} --logfile={{ root_dir }}/build.log --shared-cache-dir={{ cache_dir }} {{ kiwi_options }} system create --root {{ chroot_dir }} --target-dir  {{ dest_dir }}"
     - require:
       - cmd: mgr_buildimage_kiwi_prepare
 
