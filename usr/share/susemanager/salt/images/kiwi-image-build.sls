@@ -50,7 +50,7 @@ mgr_buildimage_prepare_kpartx_kiwi_yml:
 #
 mgr_buildimage_eib:
   cmd.run:
-    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.0 build --definition-file=eib.yaml && tar xvf {{ source_dir }}/eib/combustion.tar.gz -C {{ source_dir }}/root/oem/ ./combustion ./artefacts/"
+    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.1 build --definition-file=eib.yaml && tar xvf {{ source_dir }}/eib/combustion.tar.gz -C {{ source_dir }}/root/oem/ ./combustion ./artefacts/"
 
 {%- if use_kiwi_ng %}
 # KIWI NG
