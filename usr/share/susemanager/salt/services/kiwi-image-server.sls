@@ -21,6 +21,7 @@ mgr_install_kiwi:
   pkg.installed:
     - pkgs:
       - podman
+      - xorriso
 {%- if use_kiwi_ng %}
       - python3-kiwi
 {%- else %}

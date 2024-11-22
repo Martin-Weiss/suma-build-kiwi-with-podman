@@ -50,12 +50,14 @@ mgr_buildimage_prepare_kpartx_kiwi_yml:
 #
 mgr_buildimage_eib:
   cmd.run:
-    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.1 build --definition-file=eib.yaml && tar xvf {{ source_dir }}/eib/combustion.tar.gz -C {{ source_dir }}/root/oem/ ./combustion ./artefacts/"
+    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.4 build --definition-file=eib.yaml && xorriso -osirrox on -indev {{ source_dir }}/eib/combustion.iso extract / {{ source_dir }}/root/oem" 
 
 {%- if use_kiwi_ng %}
 # KIWI NG
 #
-{%- set kiwi = 'podman run --rm --privileged -v /var/lib/ca-certificates:/var/lib/ca-certificates -v /var/lib/Kiwi:/var/lib/Kiwi:Z -v /etc/kiwi.yml:/etc/kiwi.yml registry.suse.com/bci/kiwi:10.1.10 kiwi-ng' %}
+# need ca-cerrificates for kiwi to trust CA
+# need /dev for losetup error during create
+{%- set kiwi = 'podman run --rm --privileged -v /var/lib/ca-certificates:/var/lib/ca-certificates -v /dev:/dev -v /var/lib/Kiwi:/var/lib/Kiwi:Z -v /etc/kiwi.yml:/etc/kiwi.yml registry.suse.com/bci/kiwi:10.1.10 kiwi-ng' %}
 
 {%- set kiwi_options = pillar.get('kiwi_options', '') %}
 {%- set bootstrap_packages = ['findutils', 'rhn-org-trusted-ssl-cert-osimage'] %}
@@ -72,6 +74,7 @@ mgr_buildimage_eib:
 
 mgr_buildimage_kiwi_prepare:
   cmd.run:
+# need to remove rpm-md due to kiwi error during create
     - name: "{{ kiwi }} {{ kiwi_options }} $GLOBAL_PARAMS system prepare $PARAMS && sed -i 's/rpm-dir/rpm-md/g' {{ chroot_dir }}/image/config.xml"
     - hide_output: True
     - env:
