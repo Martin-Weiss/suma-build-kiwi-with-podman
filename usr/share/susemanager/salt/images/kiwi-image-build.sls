@@ -50,7 +50,8 @@ mgr_buildimage_prepare_kpartx_kiwi_yml:
 #
 mgr_buildimage_eib:
   cmd.run:
-    - name: "mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.4 build --definition-file=eib.yaml && xorriso -osirrox on -indev {{ source_dir }}/eib/combustion.iso extract / {{ source_dir }}/root/oem" 
+# only run eib and extract in case eib.yaml exists
+    - name: "if [ -f {{ source_dir }}/eib/eib.yaml ]; then mkdir -p {{ source_dir }}/root/oem/ && podman run --rm --privileged -v {{ source_dir }}/eib:/eib docker.io/dgiebert/edge-image-builder:1.2.4 build --definition-file=eib.yaml && xorriso -osirrox on -indev {{ source_dir }}/eib/combustion.iso extract / {{ source_dir }}/root/oem; fi" 
 
 {%- if use_kiwi_ng %}
 # KIWI NG
